@@ -9,15 +9,21 @@ TARGET_DIR="${SOURCEDIR}/_html_extra/reference/api"
 
 mkdir -p "${TARGET_DIR}"
 
-echo "Searching for the latest successful run that has artifact '${ARTIFACT_NAME}'..."
+echo "Searching for '${ARTIFACT_NAME}' artifact in the latest '${WORKFLOW}' workflow run from the master branch of '${REPO}' repo..."
 
 RUN_IDS=$(gh run list \
   -R "${REPO}" \
   --workflow "${WORKFLOW}" \
   --status success \
+  --branch master \
   --limit 100 \
   --json databaseId \
   -q '.[].databaseId')
+
+if [ -z "$RUN_IDS" ]; then
+  echo "Error: No successful runs found for '${WORKFLOW}' workflow from the master branch of '${REPO}' repo."
+  exit 1
+fi
 
 DOWNLOAD_SUCCESS=false
 
@@ -37,7 +43,8 @@ for id in $RUN_IDS; do
 done
 
 if [ "$DOWNLOAD_SUCCESS" = false ]; then
-  echo "Error: Checked the last 100 successful runs, but none contained the artifact '${ARTIFACT_NAME}'."
+  NUM_RUNS=$(echo "$RUN_IDS" | wc -l)
+  echo "Error: Checked the last ${NUM_RUNS} successful runs, but none contained the artifact '${ARTIFACT_NAME}'."
   exit 1
 fi
 
